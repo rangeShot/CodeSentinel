@@ -15,7 +15,7 @@ from __future__ import annotations
 import uuid
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Body, FastAPI, HTTPException
 
 from models import (
     ActionType,
@@ -379,7 +379,9 @@ _env = CodeSentinelEnv()
 
 
 @app.post("/reset", response_model=ResetResponse)
-def reset(req: ResetRequest) -> ResetResponse:
+def reset(req: Optional[ResetRequest] = Body(default=None)) -> ResetResponse:
+    if req is None:
+        req = ResetRequest()
     obs, reward, done = _env.reset(
         task=req.task,
         seed=req.seed,
