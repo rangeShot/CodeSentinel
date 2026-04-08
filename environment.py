@@ -146,7 +146,10 @@ class CodeSentinelEnv:
         filename = action.target
         content = self._codebase.get_file(filename)
         if not content:
-            return self._current_obs(f"File not found: {filename}"), 0.0
+            # Penalty: targeting a file that doesn't exist
+            return self._current_obs(f"File not found: {filename}"), -0.05
+
+        already_seen = filename in self._state.files_inspected
 
         # Extract APIs from this file
         new_apis = self._extractor.extract(filename, content)
@@ -156,11 +159,11 @@ class CodeSentinelEnv:
                 self._state.apis_found.append(ep)
                 existing_routes.add(ep.route)
 
-        if filename not in self._state.files_inspected:
+        if not already_seen:
             self._state.files_inspected.append(filename)
 
-        # Small reward for inspecting a new file
-        reward = 0.05 if filename not in self._state.files_inspected else 0.01
+        # Reward new file; penalise re-inspection (wasted step)
+        reward = 0.05 if not already_seen else -0.02
 
         obs = CodeSentinelObservation(
             current_file=filename,
@@ -168,7 +171,7 @@ class CodeSentinelEnv:
             apis_found=list(self._state.apis_found),
             call_graph=list(self._state.call_graph),
             available_files=self._codebase.file_list(),
-            message=f"Inspected {filename}. Found {len(new_apis)} route(s).",
+            message=f"{'Inspected' if not already_seen else 'Already inspected'} {filename}. Found {len(new_apis)} route(s).",
         )
         return obs, reward
 
@@ -184,9 +187,10 @@ class CodeSentinelEnv:
             (ep for ep in self._state.apis_found if ep.route == route), None
         )
         if handler_ep is None:
+            # Penalty: tracing a route the agent hasn't discovered yet
             return self._current_obs(
                 f"Route {route!r} not found in discovered APIs. Inspect files first."
-            ), 0.0
+            ), -0.05
 
         new_edges = self._static_trace(handler_ep.file, handler_ep.handler)
         existing = {(e.caller, e.callee) for e in self._state.call_graph}
@@ -227,6 +231,12 @@ class CodeSentinelEnv:
             severity = Severity.medium
         elif "low" in raw_type:
             severity = Severity.low
+
+        # Penalty: flagging a file not in the codebase
+        if action.target not in self._codebase.files:
+            return self._current_obs(
+                f"Cannot flag vulnerability: {action.target!r} is not a file in this codebase."
+            ), -0.1
 
         flag = VulnFlag(
             vuln_type=vuln_type,
