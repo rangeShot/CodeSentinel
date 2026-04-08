@@ -1,0 +1,39 @@
+name: CodeSentinel
+version: "1.0.0"
+description: "AI agent analyses synthetic Python codebases to identify API endpoints, trace call flows, and detect security vulnerabilities (SQLi, missing auth, SSRF, RCE)."
+
+tasks:
+  - easy
+  - medium
+  - hard
+
+action_space:
+  - inspect_file
+  - trace_route
+  - flag_vulnerability
+
+observation_space:
+  - file_content
+  - apis_found
+  - call_graph
+  - step_count
+
+reward_range:
+  - 0.0
+  - 1.0
+
+endpoints:
+  reset:   POST /reset
+  step:    POST /step
+  state:   GET  /state
+  health:  GET  /health
+  metadata: GET /metadata
+  schema:  GET  /schema
+
+runtime:
+  language: python
+  version: "3.11"
+  max_steps: 20
+  min_vcpu: 2
+  max_ram_gb: 8
+  max_inference_minutes: 20
