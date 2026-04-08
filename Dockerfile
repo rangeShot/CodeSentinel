@@ -1,16 +1,21 @@
 FROM python:3.11-slim
 
-WORKDIR /app
+# HF Spaces runs containers as user ID 1000
+RUN useradd -m -u 1000 user
+USER user
+ENV HOME=/home/user PATH=/home/user/.local/bin:$PATH
+
+WORKDIR $HOME/app
 
 # Install dependencies
-COPY requirements.txt .
+COPY --chown=user requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy source
-COPY . .
+COPY --chown=user . .
 
-# Expose port
-EXPOSE 8000
+# HF Spaces uses port 7860 by default
+EXPOSE 7860
 
-# Run the FastAPI environment server
-CMD ["uvicorn", "environment:app", "--host", "0.0.0.0", "--port", "8000"]
+# Reads PORT / HOST / WORKERS from environment (HF Spaces sets PORT automatically)
+CMD ["sh", "-c", "uvicorn environment:app --host ${HOST:-0.0.0.0} --port ${PORT:-7860} --workers ${WORKERS:-1}"]

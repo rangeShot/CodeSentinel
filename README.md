@@ -1,3 +1,12 @@
+---
+title: CodeSentinel
+emoji: 🛡️
+colorFrom: red
+colorTo: indigo
+sdk: docker
+app_port: 7860
+---
+
 # CodeSentinel
 
 An OpenEnv-compliant reinforcement learning environment where an AI agent analyses synthetic Python codebases to identify API endpoints, trace call flows, and detect security vulnerabilities.
