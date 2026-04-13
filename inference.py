@@ -256,7 +256,8 @@ def run_task(task_name: str, llm: OpenAI, env: EnvClient) -> None:
         except Exception:
             score = sum(rewards) / len(rewards) if rewards else 0.0
 
-        score   = min(max(score, 0.0), 1.0)
+        # Evaluator requires strictly between 0 and 1 (exclusive)
+        score   = max(0.001, min(0.999, score))
         success = score >= SUCCESS_SCORE_THRESHOLD
 
     except Exception as exc:

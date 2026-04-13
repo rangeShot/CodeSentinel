@@ -337,31 +337,35 @@ class CodeSentinelEnv:
         return None
 
     def _compute_final_score(self) -> float:
-        """Run the appropriate grader and return 0.0–1.0."""
+        """Run the appropriate grader and return strictly between 0.0 and 1.0."""
         task_name = self._state.task_name
         grader_cls = GRADER_REGISTRY.get(task_name)
         if grader_cls is None:
-            return 0.0
+            return 0.001
         grader = grader_cls()
 
         if task_name == "easy":
-            return grader.grade(
+            raw = grader.grade(
                 apis_found=self._state.apis_found,
                 vulns_flagged=self._state.vulns_flagged,
             )
         elif task_name == "medium":
-            return grader.grade(
+            raw = grader.grade(
                 apis_found=self._state.apis_found,
                 call_graph=self._state.call_graph,
                 vulns_flagged=self._state.vulns_flagged,
             )
         elif task_name == "hard":
-            return grader.grade(
+            raw = grader.grade(
                 vulns_flagged=self._state.vulns_flagged,
                 steps_used=self._state.step_count,
                 max_steps=self._state.max_steps,
             )
-        return 0.0
+        else:
+            raw = 0.0
+
+        # Evaluator requires strictly between 0 and 1 (exclusive)
+        return max(0.001, min(0.999, round(raw, 4)))
 
 
 # ---------------------------------------------------------------------------
